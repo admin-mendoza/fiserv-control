@@ -30,18 +30,27 @@ COMERCIOS = {
 def extraer_comercio(contenido):
     """
     El PDF dice: N° Comercio: 002999214/ 2
-    El número real de comercio es los dígitos antes de la barra,
-    sin ceros a la izquierda. Ej: 002999214 → 29992214 (NO 2999214)
-    Usamos lstrip('0') pero si queda menos de 8 dígitos algo falló.
+    Fiserv parte el número de comercio en dos partes:
+      - Antes de la barra: 002999214 (con ceros adelante)
+      - Después de la barra: 2 (último dígito)
+    El número real es: lstrip('0') de la parte1 + parte2
+    Ejemplo: 002999214 / 2 → 2999214 + 2 = 29992142
     """
+    # Capturar el patrón completo: dígitos / dígito
+    m = re.search(r'N[°º\.]\s*Comercio[:\s]+([\d]+)\s*/\s*(\d+)', contenido)
+    if not m:
+        m = re.search(r'Comercio[:\s]+([\d]+)\s*/\s*(\d+)', contenido)
+    if m:
+        parte1 = m.group(1).strip().lstrip('0') or '0'
+        parte2 = m.group(2).strip()
+        return parte1 + parte2
+
+    # Fallback: sin barra, tomar solo los dígitos
     m = re.search(r'N[°º\.]\s*Comercio[:\s]+([\d]+)', contenido)
     if not m:
         m = re.search(r'Comercio[:\s]+([\d]+)', contenido)
     if m:
-        raw = m.group(1).strip()
-        # Eliminar ceros a la izquierda pero preservar el número completo
-        resultado = raw.lstrip('0') or '0'
-        return resultado
+        return m.group(1).strip().lstrip('0') or '0'
     return "0"
 
 def detectar_tarjeta_nombre(nombre_archivo, contenido):
